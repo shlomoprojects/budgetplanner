@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מתכנן תקציב חכם</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3350;
+    --accent: #6c63ff;
+    --accent2: #ff6584;
+    --accent3: #43e97b;
+    --text: #e8eaf6;
+    --text2: #8891b8;
+    --text3: #4a5080;
+    --gold: #ffd700;
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Heebo', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; direction: rtl; overflow-x: hidden; }
+
+  /* ===== BACKGROUND ===== */
+  .bg-orbs { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+  .orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.12; animation: float 8s ease-in-out infinite; }
+  .orb1 { width: 500px; height: 500px; background: var(--accent); top: -100px; right: -100px; animation-delay: 0s; }
+  .orb2 { width: 400px; height: 400px; background: var(--accent2); bottom: -100px; left: -100px; animation-delay: 3s; }
+  .orb3 { width: 300px; height: 300px; background: var(--accent3); top: 50%; left: 50%; animation-delay: 5s; }
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-30px)} }
+
+  /* ===== SCREENS ===== */
+  .screen { position: relative; z-index: 1; min-height: 100vh; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 24px 16px; }
+  .screen.active { display: flex; animation: fadeIn 0.5s ease; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+  /* ===== WELCOME SCREEN ===== */
+  #screen-welcome { text-align: center; }
+  .logo { font-size: 3.5rem; margin-bottom: 16px; animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+  .welcome-title { font-size: 2.4rem; font-weight: 900; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 12px; line-height: 1.2; }
+  .welcome-sub { font-size: 1.1rem; color: var(--text2); max-width: 420px; line-height: 1.6; margin-bottom: 40px; }
+  .btn-start { background: linear-gradient(135deg, var(--accent), #8b85ff); color: white; border: none; padding: 16px 48px; border-radius: 50px; font-size: 1.15rem; font-weight: 700; font-family: 'Heebo', sans-serif; cursor: pointer; box-shadow: 0 8px 32px rgba(108,99,255,0.4); transition: all 0.3s; }
+  .btn-start:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(108,99,255,0.6); }
+
+  /* ===== QUIZ SCREEN ===== */
+  #screen-quiz { max-width: 640px; width: 100%; }
+  .quiz-header { width: 100%; margin-bottom: 32px; }
+  .quiz-progress-bar { background: var(--surface2); border-radius: 10px; height: 6px; margin-bottom: 12px; overflow: hidden; }
+  .quiz-progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 10px; transition: width 0.5s ease; }
+  .quiz-counter { font-size: 0.85rem; color: var(--text2); text-align: left; }
+  .question-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px; width: 100%; }
+  .question-emoji { font-size: 2.5rem; margin-bottom: 16px; display: block; }
+  .question-text { font-size: 1.25rem; font-weight: 700; margin-bottom: 8px; line-height: 1.4; }
+  .question-hint { font-size: 0.85rem; color: var(--text2); margin-bottom: 24px; }
+  .options-grid { display: grid; gap: 10px; }
+  .options-grid.cols2 { grid-template-columns: 1fr 1fr; }
+  .option-btn { background: var(--surface2); border: 2px solid var(--border); border-radius: 12px; padding: 14px 18px; color: var(--text); font-family: 'Heebo', sans-serif; font-size: 0.95rem; font-weight: 500; cursor: pointer; transition: all 0.2s; text-align: right; display: flex; align-items: center; gap: 10px; }
+  .option-btn:hover { border-color: var(--accent); background: rgba(108,99,255,0.1); }
+  .option-btn.selected { border-color: var(--accent); background: rgba(108,99,255,0.2); color: white; }
+  .option-btn .opt-icon { font-size: 1.3rem; }
+  .input-field { background: var(--surface2); border: 2px solid var(--border); border-radius: 12px; padding: 14px 18px; color: var(--text); font-family: 'Heebo', sans-serif; font-size: 1rem; width: 100%; outline: none; transition: border-color 0.2s; text-align: right; }
+  .input-field:focus { border-color: var(--accent); }
+  .quiz-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 24px; }
+  .btn-next { background: linear-gradient(135deg, var(--accent), #8b85ff); color: white; border: none; padding: 12px 32px; border-radius: 50px; font-size: 1rem; font-weight: 700; font-family: 'Heebo', sans-serif; cursor: pointer; transition: all 0.2s; }
+  .btn-next:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(108,99,255,0.4); }
+  .btn-next:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .btn-back { background: transparent; border: 1px solid var(--border); color: var(--text2); padding: 12px 24px; border-radius: 50px; font-size: 0.95rem; font-family: 'Heebo', sans-serif; cursor: pointer; transition: all 0.2s; }
+  .btn-back:hover { border-color: var(--text2); color: var(--text); }
+
+  /* ===== MAIN PLANNER ===== */
+  #screen-planner { align-items: stretch; padding: 0; display: none; flex-direction: column; }
+  #screen-planner.active { display: flex; }
+  .planner-inner { max-width: 1100px; width: 100%; margin: 0 auto; padding: 32px 20px; }
+
+  .planner-top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 28px; }
+  .planner-title { font-size: 1.6rem; font-weight: 800; }
+  .user-chip { background: var(--surface); border: 1px solid var(--border); border-radius: 50px; padding: 8px 16px; font-size: 0.85rem; color: var(--text2); display: flex; align-items: center; gap: 8px; }
+  .user-chip span { color: var(--text); font-weight: 600; }
+
+  /* Income bar */
+  .income-bar { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; margin-bottom: 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .income-bar label { font-weight: 600; color: var(--text2); font-size: 0.9rem; white-space: nowrap; }
+  .income-input { background: var(--surface2); border: 2px solid var(--border); border-radius: 10px; padding: 10px 16px; color: var(--text); font-family: 'Heebo', sans-serif; font-size: 1.2rem; font-weight: 800; width: 150px; outline: none; text-align: right; transition: border-color 0.2s; }
+  .income-input:focus { border-color: var(--accent); }
+  .currency { font-size: 1rem; color: var(--text2); font-weight: 600; }
+  .status-badge { margin-right: auto; font-size: 0.85rem; font-weight: 700; padding: 7px 16px; border-radius: 50px; }
+  .status-badge.ok { background: rgba(67,233,123,0.15); color: var(--accent3); border: 1px solid rgba(67,233,123,0.3); }
+  .status-badge.over { background: rgba(255,101,132,0.15); color: var(--accent2); border: 1px solid rgba(255,101,132,0.3); }
+  .status-badge.under { background: rgba(255,215,0,0.12); color: var(--gold); border: 1px solid rgba(255,215,0,0.3); }
+
+  /* Goal bar */
+  .goal-bar { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; margin-bottom: 20px; }
+  .goal-bar-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; cursor: pointer; user-select: none; }
+  .goal-bar-header h3 { font-size: 1rem; font-weight: 700; flex: 1; }
+  .goal-toggle { font-size: 0.8rem; color: var(--text2); background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 4px 12px; cursor: pointer; }
+  .goal-fields { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .goal-field { display: flex; flex-direction: column; gap: 6px; }
+  .goal-field label { font-size: 0.78rem; color: var(--text2); font-weight: 600; }
+  .goal-field select, .goal-field input { background: var(--surface2); border: 2px solid var(--border); border-radius: 10px; padding: 10px 14px; color: var(--text); font-family: 'Heebo', sans-serif; font-size: 0.9rem; outline: none; transition: border-color 0.2s; text-align: right; -webkit-appearance: none; }
+  .goal-field select:focus, .goal-field input:focus { border-color: var(--accent); }
+  .goal-progress-section { margin-top: 14px; }
+  .goal-progress-label { display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--text2); margin-bottom: 6px; }
+  .goal-progress-track { background: var(--surface2); border-radius: 8px; height: 10px; overflow: hidden; }
+  .goal-progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent3)); border-radius: 8px; transition: width 0.5s; }
+  .goal-message { margin-top: 10px; font-size: 0.85rem; font-weight: 600; }
+  .goal-message.good { color: var(--accent3); }
+  .goal-message.warn { color: var(--gold); }
+  .goal-message.bad { color: var(--accent2); }
+
+  /* Categories */
+  .categories-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; margin-bottom: 20px; }
+  .cat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; transition: border-color 0.2s, box-shadow 0.2s; border-right: 4px solid; }
+  .cat-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+  .cat-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .cat-emoji { font-size: 1.3rem; }
+  .cat-name { font-weight: 700; font-size: 0.95rem; flex: 1; }
+  .cat-pct { font-size: 0.78rem; font-weight: 700; background: var(--surface2); border-radius: 10px; padding: 3px 8px; color: var(--text2); }
+  .cat-row { display: flex; align-items: center; gap: 10px; }
+  .cat-range { flex: 1; -webkit-appearance: none; appearance: none; height: 5px; border-radius: 3px; background: var(--surface2); outline: none; cursor: pointer; direction: ltr; }
+  .cat-range::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--accent); cursor: pointer; box-shadow: 0 0 6px rgba(108,99,255,0.6); }
+  .cat-amount { background: var(--surface2); border: 2px solid var(--border); border-radius: 8px; padding: 6px 10px; color: var(--text); font-family: 'Heebo', sans-serif; font-size: 0.95rem; font-weight: 700; width: 90px; outline: none; text-align: right; transition: border-color 0.2s; }
+  .cat-amount:focus { border-color: var(--accent); }
+  .cat-bar { height: 4px; border-radius: 2px; background: var(--surface2); margin-top: 10px; overflow: hidden; }
+  .cat-bar-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+  .cat-tip { font-size: 0.72rem; color: var(--text3); margin-top: 6px; }
+
+  /* Summary */
+  .summary-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; }
+  .summary-card h2 { font-size: 1rem; font-weight: 800; margin-bottom: 16px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; }
+  .summary-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+  .summary-row:last-child { border: none; font-size: 1.05rem; font-weight: 800; padding-top: 14px; }
+  .summary-row .val { font-weight: 700; }
+  .val.pos { color: var(--accent3); }
+  .val.neg { color: var(--accent2); }
+  .val.zero { color: var(--text2); }
+
+  /* Profile summary */
+  .profile-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .profile-tag { background: var(--surface); border: 1px solid var(--border); border-radius: 50px; padding: 6px 14px; font-size: 0.8rem; color: var(--text2); display: flex; align-items: center; gap: 6px; }
+  .profile-tag strong { color: var(--text); }
+
+  footer { text-align: center; color: var(--text3); font-size: 0.75rem; padding-bottom: 32px; }
+</style>
+</head>
+<body>
+<div class="bg-orbs">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+</div>
+
+<!-- WELCOME -->
+<div class="screen active" id="screen-welcome">
+  <div class="logo">💰</div>
+  <h1 class="welcome-title">מתכנן התקציב החכם שלך</h1>
+  <p class="welcome-sub">נענה על 10 שאלות קצרות כדי לאפיין את המצב הפיננסי שלך ולבנות תכנית מותאמת אישית.</p>
+  <button class="btn-start" onclick="startQuiz()">בואו נתחיל ←</button>
+</div>
+
+<!-- QUIZ -->
+<div class="screen" id="screen-quiz">
+  <div class="quiz-header">
+    <div class="quiz-progress-bar"><div class="quiz-progress-fill" id="quizProgressFill"></div></div>
+    <div class="quiz-counter" id="quizCounter">שאלה 1 מתוך 10</div>
+  </div>
+  <div class="question-card" id="questionCard"></div>
+  <div class="quiz-nav">
+    <button class="btn-back" id="btnBack" onclick="prevQuestion()">← חזור</button>
+    <button class="btn-next" id="btnNext" onclick="nextQuestion()">הבא ←</button>
+  </div>
+</div>
+
+<!-- PLANNER -->
+<div class="screen" id="screen-planner">
+  <div class="planner-inner">
+    <div class="planner-top">
+      <div class="planner-title">💰 תכנית התקציב שלך</div>
+      <div class="user-chip">👤 שלום, <span id="userName">משתמש</span></div>
+    </div>
+    <div class="profile-tags" id="profileTags"></div>
+
+    <!-- Income bar -->
+    <div class="income-bar">
+      <label>הכנסה חודשית נטו:</label>
+      <input type="number" class="income-input" id="totalBudget" value="3500" min="0" step="100">
+      <span class="currency">₪</span>
+      <div class="status-badge ok" id="statusBadge">✓ מאוזן</div>
+    </div>
+
+    <!-- Goal bar -->
+    <div class="goal-bar">
+      <div class="goal-bar-header" onclick="toggleGoal()">
+        <span style="font-size:1.3rem">🎯</span>
+        <h3>יעד פיננסי</h3>
+        <span class="goal-toggle" id="goalToggleBtn">▲ הסתר</span>
+      </div>
+      <div id="goalContent">
+        <div class="goal-fields">
+          <div class="goal-field">
+            <label>סוג היעד</label>
+            <select id="goalType" onchange="updateGoalCalc()">
+              <option value="savings">הגדלת חיסכון</option>
+              <option value="debt">פירעון חוב</option>
+              <option value="purchase">רכישה גדולה</option>
+              <option value="investment">השקעות</option>
+              <option value="emergency">קרן חירום</option>
+            </select>
+          </div>
+          <div class="goal-field">
+            <label>סכום יעד (₪)</label>
+            <input type="number" id="goalAmount" placeholder="לדוגמה: 20000" oninput="updateGoalCalc()">
+          </div>
+          <div class="goal-field">
+            <label>עד מתי?</label>
+            <input type="month" id="goalDate" oninput="updateGoalCalc()">
+          </div>
+        </div>
+        <div class="goal-progress-section" id="goalProgressSection" style="display:none">
+          <div class="goal-progress-label">
+            <span id="goalProgressText">התקדמות לעבר היעד</span>
+            <span id="goalProgressPct">0%</span>
+          </div>
+          <div class="goal-progress-track"><div class="goal-progress-fill" id="goalProgressFill" style="width:0%"></div></div>
+          <div class="goal-message" id="goalMessage"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Categories -->
+    <div class="categories-grid" id="categoryGrid"></div>
+
+    <!-- Summary -->
+    <div class="summary-card">
+      <h2>📊 סיכום חודשי</h2>
+      <div class="summary-row"><span>סה"כ הכנסה</span><span class="val" id="sumTotal">₪3,500</span></div>
+      <div class="summary-row"><span>סה"כ הוצאות</span><span class="val" id="sumAllocated">₪0</span></div>
+      <div class="summary-row"><span>יעד חיסכון חודשי</span><span class="val" id="sumGoalMonthly">—</span></div>
+      <div class="summary-row"><span>יתרה</span><span class="val" id="sumRemaining">₪0</span></div>
+    </div>
+    <footer>כלל 50/30/20: 50% צרכים בסיסיים · 30% רצונות · 20% חיסכון והשקעות</footer>
+  </div>
+</div>
+
+<script>
+// ===== QUESTIONS =====
+const questions = [
+  {
+    id: 'name', emoji: '👋', text: 'מה השם שלך?', hint: 'נשתמש בו כדי לאפיין את החוויה',
+    type: 'text', placeholder: 'הכנס שם...'
+  },
+  {
+    id: 'status', emoji: '👨‍👩‍👧', text: 'מה המצב המשפחתי שלך?', hint: 'זה משפיע על מבנה ההוצאות',
+    type: 'options', cols: 2, options: [
+      {icon:'🧑', label:'רווק/ה'}, {icon:'💑', label:'זוג ללא ילדים'},
+      {icon:'👨‍👧', label:'הורה יחיד'}, {icon:'👨‍👩‍👧‍👦', label:'משפחה עם ילדים'}
+    ]
+  },
+  {
+    id: 'kids', emoji: '🧒', text: 'כמה ילדים יש לך?', hint: 'ילדים משפיעים משמעותית על ההוצאות',
+    type: 'options', cols: 2, options: [
+      {icon:'0️⃣', label:'אין ילדים'}, {icon:'1️⃣', label:'ילד אחד'},
+      {icon:'2️⃣', label:'שני ילדים'}, {icon:'3️⃣', label:'3 ומעלה'}
+    ]
+  },
+  {
+    id: 'employment', emoji: '💼', text: 'מה סטטוס התעסוקה שלך?', hint: 'נתאים את המלצות החיסכון בהתאם',
+    type: 'options', cols: 2, options: [
+      {icon:'👔', label:'שכיר/ה'}, {icon:'🏢', label:'עצמאי/ת'},
+      {icon:'📚', label:'סטודנט/ית'}, {icon:'🔄', label:'משולב/ת'}
+    ]
+  },
+  {
+    id: 'income', emoji: '💵', text: 'מה ההכנסה החודשית נטו שלך (₪)?', hint: 'לאחר תשלום מסים וניכויים',
+    type: 'number', placeholder: 'לדוגמה: 12000'
+  },
+  {
+    id: 'housing', emoji: '🏠', text: 'מה סטטוס הדיור שלך?', hint: 'גורם משמעותי בתכנון התקציב',
+    type: 'options', cols: 2, options: [
+      {icon:'🔑', label:'שכירות'}, {icon:'🏡', label:'בעלות עם משכנתה'},
+      {icon:'✅', label:'בעלות ללא משכנתה'}, {icon:'👪', label:'גר עם הורים'}
+    ]
+  },
+  {
+    id: 'savings', emoji: '🏦', text: 'כמה חיסכון כרגע יש לך?', hint: 'כולל פנסיה, קרן השתלמות, חיסכון אישי',
+    type: 'options', cols: 2, options: [
+      {icon:'😅', label:'אין חיסכון'}, {icon:'💰', label:'פחות מ-₪50,000'},
+      {icon:'💎', label:'₪50,000–200,000'}, {icon:'🚀', label:'מעל ₪200,000'}
+    ]
+  },
+  {
+    id: 'debt', emoji: '💳', text: 'האם יש לך חובות פעילים?', hint: 'הלוואות, כרטיסי אשראי, אוברדרפט',
+    type: 'options', cols: 2, options: [
+      {icon:'✅', label:'אין חובות'}, {icon:'📉', label:'חוב קטן (עד ₪20,000)'},
+      {icon:'⚠️', label:'חוב בינוני'}, {icon:'🚨', label:'חוב גבוה'}
+    ]
+  },
+  {
+    id: 'goal_type', emoji: '🎯', text: 'מה המטרה הפיננסית הראשית שלך?', hint: 'נתאים את חלוקת התקציב בהתאם',
+    type: 'options', cols: 2, options: [
+      {icon:'💰', label:'הגדלת חיסכון'}, {icon:'📈', label:'השקעות'},
+      {icon:'🏠', label:'רכישת דירה'}, {icon:'🆓', label:'חופש פיננסי'}
+    ]
+  },
+  {
+    id: 'risk', emoji: '📊', text: 'מה רמת הנוחות שלך עם סיכון פיננסי?', hint: 'ישפיע על המלצות ההשקעה שלנו',
+    type: 'options', cols: 2, options: [
+      {icon:'🛡️', label:'שמרן — מינימום סיכון'}, {icon:'⚖️', label:'מאוזן — סיכון בינוני'},
+      {icon:'📈', label:'אגרסיבי — מקסום תשואה'}, {icon:'🤷', label:'לא בטוח/ה עדיין'}
+    ]
+  }
+];
+
+let answers = {};
+let currentQ = 0;
+let goalVisible = true;
+
+function startQuiz() {
+  document.getElementById('screen-welcome').classList.remove('active');
+  document.getElementById('screen-quiz').classList.add('active');
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = questions[currentQ];
+  const total = questions.length;
+  document.getElementById('quizProgressFill').style.width = ((currentQ+1)/total*100)+'%';
+  document.getElementById('quizCounter').textContent = `שאלה ${currentQ+1} מתוך ${total}`;
+  document.getElementById('btnBack').style.visibility = currentQ === 0 ? 'hidden' : 'visible';
+  document.getElementById('btnNext').textContent = currentQ === total-1 ? 'סיים ←' : 'הבא ←';
+
+  let html = `<span class="question-emoji">${q.emoji}</span>
+    <div class="question-text">${q.text}</div>
+    <div class="question-hint">${q.hint}</div>`;
+
+  if (q.type === 'options') {
+    html += `<div class="options-grid ${q.cols===2?'cols2':''}">`;
+    q.options.forEach((opt,i) => {
+      const sel = answers[q.id] === opt.label ? 'selected' : '';
+      html += `<button class="option-btn ${sel}" onclick="selectOption('${q.id}','${opt.label}',this)">
+        <span class="opt-icon">${opt.icon}</span> ${opt.label}
+      </button>`;
+    });
+    html += '</div>';
+  } else if (q.type === 'text') {
+    const val = answers[q.id] || '';
+    html += `<input class="input-field" type="text" placeholder="${q.placeholder}" value="${val}" id="textAnswer" oninput="answers['${q.id}']=this.value; updateNextBtn()">`;
+  } else if (q.type === 'number') {
+    const val = answers[q.id] || '';
+    html += `<input class="input-field" type="number" placeholder="${q.placeholder}" value="${val}" id="textAnswer" oninput="answers['${q.id}']=this.value; updateNextBtn()">`;
+  }
+
+  document.getElementById('questionCard').innerHTML = html;
+  updateNextBtn();
+}
+
+function selectOption(id, val, el) {
+  answers[id] = val;
+  document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  updateNextBtn();
+}
+
+function updateNextBtn() {
+  const q = questions[currentQ];
+  const hasAnswer = answers[q.id] !== undefined && answers[q.id] !== '';
+  document.getElementById('btnNext').disabled = !hasAnswer;
+}
+
+function nextQuestion() {
+  if (currentQ < questions.length-1) {
+    currentQ++;
+    renderQuestion();
+  } else {
+    buildPlanner();
+  }
+}
+
+function prevQuestion() {
+  if (currentQ > 0) { currentQ--; renderQuestion(); }
+}
+
+// ===== BUILD PLANNER =====
+const baseCategories = [
+  { id:'housing', name:'דיור', emoji:'🏠', color:'#6c63ff', tip:'שכירות/משכנתה, חשבונות, ביטוח', basePct:30 },
+  { id:'food', name:'מזון וסופרמרקט', emoji:'🛒', color:'#48bb78', tip:'קניות + אוכל בחוץ', basePct:12 },
+  { id:'transport', name:'תחבורה', emoji:'🚗', color:'#ed8936', tip:'רכב, דלק, תחבורה ציבורית', basePct:10 },
+  { id:'health', name:'בריאות', emoji:'💊', color:'#f56565', tip:'ביטוח, תרופות, ספורט', basePct:8 },
+  { id:'savings', name:'חיסכון וקרן חירום', emoji:'🏦', color:'#9f7aea', tip:'שאפו ל-3–6 חודשי הוצאות', basePct:10 },
+  { id:'invest', name:'השקעות ופנסיה', emoji:'📈', color:'#38b2ac', tip:'פנסיה, קרן השתלמות, ניירות ערך', basePct:8 },
+  { id:'kids_exp', name:'הוצאות ילדים', emoji:'🧒', color:'#f6ad55', tip:'חינוך, פעילויות, ביגוד', basePct:0 },
+  { id:'fun', name:'בילויים ופנאי', emoji:'🎉', color:'#fc8181', tip:'תחביבים, סטרימינג, יציאות', basePct:8 },
+  { id:'clothing', name:'ביגוד וטיפוח', emoji:'👗', color:'#76e4f7', tip:'בגדים, תספורות, קוסמטיקה', basePct:5 },
+  { id:'misc', name:'שונות ומרווח', emoji:'🎲', color:'#a0aec0', tip:'הוצאות בלתי צפויות, מתנות', basePct:5 },
+  { id:'debt_pay', name:'החזר חובות', emoji:'💳', color:'#ff6584', tip:'הלוואות, כרטיסי אשראי', basePct:0 },
+];
+
+let categories = [];
+
+function buildPlanner() {
+  // Calculate smart percentages based on profile
+  categories = JSON.parse(JSON.stringify(baseCategories));
+  const a = answers;
+
+  // Kids adjustment
+  const hasKids = a.kids && a.kids !== 'אין ילדים';
+  const kidsIdx = categories.findIndex(c=>c.id==='kids_exp');
+  if (hasKids) {
+    const kidsBonus = a.kids==='שני ילדים'?8 : a.kids==='3 ומעלה'?12 : 5;
+    categories[kidsIdx].basePct = kidsBonus;
+    categories.find(c=>c.id==='fun').basePct = Math.max(4, 8-kidsBonus/2);
+  }
+
+  // Debt adjustment
+  if (a.debt && a.debt !== 'אין חובות') {
+    const debtIdx = categories.findIndex(c=>c.id==='debt_pay');
+    categories[debtIdx].basePct = a.debt==='חוב גבוה' ? 12 : a.debt==='חוב בינוני' ? 8 : 4;
+    categories.find(c=>c.id==='savings').basePct = Math.max(5, 10 - categories[debtIdx].basePct/2);
+  }
+
+  // Goal adjustment
+  if (a.goal_type === 'רכישת דירה' || a.goal_type === 'חופש פיננסי') {
+    categories.find(c=>c.id==='savings').basePct = Math.min(20, categories.find(c=>c.id==='savings').basePct + 4);
+  }
+  if (a.goal_type === 'השקעות') {
+    categories.find(c=>c.id==='invest').basePct = Math.min(18, categories.find(c=>c.id==='invest').basePct + 4);
+  }
+
+  // Housing adjustment
+  if (a.housing === 'בעלות ללא משכנתה') {
+    categories.find(c=>c.id==='housing').basePct = 15;
+    categories.find(c=>c.id==='savings').basePct += 5;
+  }
+
+  // Normalize to 100
+  const total = categories.reduce((s,c)=>s+c.basePct, 0);
+  if (total !== 100) {
+    const diff = 100 - total;
+    categories.find(c=>c.id==='misc').basePct += diff;
+  }
+
+  // Set income
+  const income = parseFloat(a.income) || 3500;
+  document.getElementById('totalBudget').value = income;
+
+  // Set name
+  document.getElementById('userName').textContent = a.name || 'משתמש';
+
+  // Profile tags
+  const tags = [];
+  if (a.status) tags.push({icon:'👨‍👩‍👧', label: a.status});
+  if (a.employment) tags.push({icon:'💼', label: a.employment});
+  if (a.housing) tags.push({icon:'🏠', label: a.housing});
+  if (a.debt && a.debt !== 'אין חובות') tags.push({icon:'💳', label: a.debt});
+  if (a.goal_type) tags.push({icon:'🎯', label: a.goal_type});
+  document.getElementById('profileTags').innerHTML = tags.map(t =>
+    `<div class="profile-tag">${t.icon} <strong>${t.label}</strong></div>`
+  ).join('');
+
+  // Set default goal date to end of year
+  const now = new Date();
+  document.getElementById('goalDate').value = now.getFullYear()+'-12';
+  if (a.goal_type) {
+    const goalTypeMap = {'הגדלת חיסכון':'savings','השקעות':'investment','רכישת דירה':'purchase','חופש פיננסי':'savings'};
+    document.getElementById('goalType').value = goalTypeMap[a.goal_type] || 'savings';
+  }
+
+  // Build cards
+  buildCards(income);
+
+  document.getElementById('screen-quiz').classList.remove('active');
+  document.getElementById('screen-planner').classList.add('active');
+
+  // Set income listener
+  document.getElementById('totalBudget').addEventListener('input', () => {
+    const t = getTotal();
+    categories.forEach((cat,i) => {
+      const amt = Math.round(t * cat.basePct / 100);
+      const r = document.getElementById(`range-${i}`);
+      if (r) { r.max = t; r.value = amt; }
+      const a = document.getElementById(`amt-${i}`);
+      if (a) { a.value = amt; }
+      updateFromIndex(i, amt);
+    });
+    updateGoalCalc();
+  });
+}
+
+function buildCards(total) {
+  const grid = document.getElementById('categoryGrid');
+  grid.innerHTML = '';
+  categories.forEach((cat, i) => {
+    if (cat.basePct === 0 && cat.id !== 'kids_exp' && cat.id !== 'debt_pay') return;
+    const amount = Math.round(total * cat.basePct / 100);
+    const card = document.createElement('div');
+    card.className = 'cat-card';
+    card.style.borderRightColor = cat.color;
+    card.innerHTML = `
+      <div class="cat-head">
+        <span class="cat-emoji">${cat.emoji}</span>
+        <span class="cat-name">${cat.name}</span>
+        <span class="cat-pct" id="pct-${i}">${cat.basePct}%</span>
+      </div>
+      <div class="cat-row">
+        <input type="range" class="cat-range" id="range-${i}" min="0" max="${total}" step="50" value="${amount}"
+          style="--thumb-color:${cat.color}">
+        <input type="number" class="cat-amount" id="amt-${i}" value="${amount}" min="0" step="50">
+      </div>
+      <div class="cat-bar"><div class="cat-bar-fill" id="fill-${i}" style="background:${cat.color};width:${cat.basePct}%"></div></div>
+      <div class="cat-tip">${cat.tip}</div>
+    `;
+    grid.appendChild(card);
+
+    document.getElementById(`range-${i}`).addEventListener('input', e => {
+      document.getElementById(`amt-${i}`).value = e.target.value;
+      updateFromIndex(i, parseFloat(e.target.value));
+    });
+    document.getElementById(`amt-${i}`).addEventListener('input', e => {
+      const v = parseFloat(e.target.value)||0;
+      document.getElementById(`range-${i}`).value = v;
+      updateFromIndex(i, v);
+    });
+  });
+  updateSummary();
+  updateGoalCalc();
+}
+
+function getTotal() { return parseFloat(document.getElementById('totalBudget').value)||3500; }
+
+function fmt(n) { return '₪'+(Math.abs(n)).toLocaleString('he-IL'); }
+
+function updateFromIndex(i, value) {
+  const total = getTotal();
+  const pct = total>0 ? Math.round(value/total*100) : 0;
+  const pctEl = document.getElementById(`pct-${i}`);
+  const fillEl = document.getElementById(`fill-${i}`);
+  if (pctEl) pctEl.textContent = pct+'%';
+  if (fillEl) fillEl.style.width = Math.min(pct,100)+'%';
+  updateSummary();
+  updateGoalCalc();
+}
+
+function updateSummary() {
+  const total = getTotal();
+  let allocated = 0;
+  categories.forEach((_,i) => {
+    const el = document.getElementById(`amt-${i}`);
+    if (el) allocated += parseFloat(el.value)||0;
+  });
+  const remaining = total - allocated;
+  document.getElementById('sumTotal').textContent = fmt(total);
+  document.getElementById('sumAllocated').textContent = fmt(allocated);
+  const remEl = document.getElementById('sumRemaining');
+  remEl.textContent = (remaining>=0?'+':'-')+fmt(remaining);
+  remEl.className = 'val '+(remaining>50?'pos':remaining<-50?'neg':'zero');
+  const badge = document.getElementById('statusBadge');
+  if (Math.abs(remaining)<50){badge.textContent='✓ מאוזן';badge.className='status-badge ok';}
+  else if (remaining>0){badge.textContent=`${fmt(remaining)} לא מוקצה`;badge.className='status-badge under';}
+  else{badge.textContent=`${fmt(Math.abs(remaining))} חריגה`;badge.className='status-badge over';}
+}
+
+function updateGoalCalc() {
+  const goalAmt = parseFloat(document.getElementById('goalAmount').value);
+  const goalDateVal = document.getElementById('goalDate').value;
+  const section = document.getElementById('goalProgressSection');
+  if (!goalAmt || !goalDateVal) { section.style.display='none'; document.getElementById('sumGoalMonthly').textContent='—'; return; }
+
+  const now = new Date();
+  const [yr, mo] = goalDateVal.split('-').map(Number);
+  const target = new Date(yr, mo-1, 1);
+  const monthsLeft = Math.max(1, (target.getFullYear()-now.getFullYear())*12 + (target.getMonth()-now.getMonth()));
+  const monthlyNeeded = Math.ceil(goalAmt / monthsLeft);
+
+  // Find current savings allocation
+  const savingsIdx = categories.findIndex(c=>c.id==='savings');
+  const investIdx = categories.findIndex(c=>c.id==='invest');
+  let currentSavingsMonthly = 0;
+  const sEl = document.getElementById(`amt-${savingsIdx}`);
+  const iEl = document.getElementById(`amt-${investIdx}`);
+  if (sEl) currentSavingsMonthly += parseFloat(sEl.value)||0;
+  if (iEl) currentSavingsMonthly += parseFloat(iEl.value)||0;
+
+  const progressPct = Math.min(100, Math.round(currentSavingsMonthly/monthlyNeeded*100));
+
+  section.style.display = 'block';
+  document.getElementById('goalProgressText').textContent = `${monthsLeft} חודשים · נדרש ${fmt(monthlyNeeded)}/חודש`;
+  document.getElementById('goalProgressPct').textContent = progressPct+'%';
+  document.getElementById('goalProgressFill').style.width = progressPct+'%';
+  document.getElementById('sumGoalMonthly').textContent = fmt(monthlyNeeded)+'/חודש';
+
+  const msg = document.getElementById('goalMessage');
+  if (progressPct >= 100) { msg.textContent = '🎉 מצוין! החיסכון החודשי שלך מספיק להגיע ליעד בזמן'; msg.className='goal-message good'; }
+  else if (progressPct >= 70) { msg.textContent = `⚡ קרוב! הגדל חיסכון ב-${fmt(monthlyNeeded-currentSavingsMonthly)}/חודש להגיע ביעד`; msg.className='goal-message warn'; }
+  else { msg.textContent = `⚠️ צריך להגדיל חיסכון ב-${fmt(monthlyNeeded-currentSavingsMonthly)}/חודש להגיע ביעד`; msg.className='goal-message bad'; }
+}
+
+function toggleGoal() {
+  goalVisible = !goalVisible;
+  document.getElementById('goalContent').style.display = goalVisible ? 'block' : 'none';
+  document.getElementById('goalToggleBtn').textContent = goalVisible ? '▲ הסתר' : '▼ הצג';
+}
+</script>
+</body>
+</html>
